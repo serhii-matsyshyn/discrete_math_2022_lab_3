@@ -1,5 +1,5 @@
 ## Usage example
-![](usage_example.png)
+![](images/usage_example.png)
 
 ## Tasks
 - RSA for digital signature 

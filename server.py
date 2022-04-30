@@ -1,16 +1,22 @@
+""" Server module for the chat application. """
+# pylint: disable=invalid-name
+
 import socket
 import threading
 
+
 class Server:
+    """ Server class for the chat application. """
 
     def __init__(self, port: int) -> None:
         self.host = '127.0.0.1'
         self.port = port
         self.clients = []
         self.username_lookup = {}
-        self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self):
+        """ Start the server. """
         self.s.bind((self.host, self.port))
         self.s.listen(100)
 
@@ -24,7 +30,7 @@ class Server:
             self.username_lookup[c] = username
             self.clients.append(c)
 
-            # send public key to the client 
+            # send public key to the client
 
             # ...
 
@@ -32,28 +38,30 @@ class Server:
 
             # ...
 
-            # send the encrypted secret to a client 
+            # send the encrypted secret to a client
 
             # ...
 
-            threading.Thread(target=self.handle_client,args=(c,addr,)).start()
+            threading.Thread(target=self.handle_client, args=(c, addr,)).start()
 
     def broadcast(self, msg: str):
-        for client in self.clients: 
-
+        """ Broadcast a message to all clients. """
+        for client in self.clients:
             # encrypt the message
 
             # ...
 
             client.send(msg.encode())
 
-    def handle_client(self, c: socket, addr): 
+    def handle_client(self, c: socket, addr):
+        """ Handle a client. """
         while True:
             msg = c.recv(1024)
 
             for client in self.clients:
                 if client != c:
                     client.send(msg)
+
 
 if __name__ == "__main__":
     s = Server(9001)
