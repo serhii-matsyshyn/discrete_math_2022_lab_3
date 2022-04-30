@@ -6,7 +6,7 @@ import random
 class ChatCryptography:
     """ Class for cryptography of chat. """
 
-    def __init__(self, bits: int = 512):
+    def __init__(self, bits: int = 10):
         self.short_primes = self.generate_all_prime_numbers_up_to_x()
         self.__keys = self.generate_rsa_keys(bits)
 
@@ -112,6 +112,18 @@ class ChatCryptography:
         d = d or self.__keys["d"]
         n = n or self.__keys["n"]
         return "".join([chr(pow(char, d, n)) for char in encrypted_message])
+
+    def sign_message(self, message: str, d: int = None, n: int = None):
+        """ Signs message with RSA """
+        d = d or self.__keys["d"]
+        n = n or self.__keys["n"]
+        return [pow(ord(char), d, n) for char in message]
+
+    def verify_message_signature(self, signed_message: list, e: int = None, n: int = None):
+        """ Verifies message signature with RSA """
+        e = e or self.__keys["e"]
+        n = n or self.__keys["n"]
+        return "".join([chr(pow(char, e, n)) for char in signed_message])
 
     @property
     def public_key(self):

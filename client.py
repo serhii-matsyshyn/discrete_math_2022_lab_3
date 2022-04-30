@@ -3,6 +3,7 @@
 import json
 import socket
 import threading
+from hashlib import sha256
 
 from chat_cryptography import ChatCryptography
 
@@ -10,7 +11,7 @@ from chat_cryptography import ChatCryptography
 class Client:
     """ Client class for the client side of the chat application. """
 
-    def __init__(self, server_ip: str = "127.0.0.1", port: int = 9001, bufsize: int = 1024,
+    def __init__(self, server_ip: str = "127.0.0.1", port: int = 9001, bufsize: int = 10240,
                  username: str = None) -> None:
         self.server_ip = server_ip
         self.port = port
@@ -43,19 +44,33 @@ class Client:
     def read_handler(self):
         """ Reads messages from the server and prints them to the console. """
         while True:
-            message = json.loads(self.s.recv(self.bufsize).decode())
+            try:
+                message = json.loads(self.s.recv(self.bufsize).decode())
 
-            # decrypt message with the secrete key
-            message_decrypted = self.client_crypto.decrypt(message["message_encrypted"])
+                # decrypt message with the secrete key
+                message_decrypted = self.client_crypto.decrypt(message["message_encrypted"])
+                hash_signed = self.client_crypto.verify_message_signature(message["hash_signed"],
+                                                                          **self.server_public_key)
 
-            # TODO: check if hash is correct
+                message_hash = sha256(message_decrypted.encode()).hexdigest()
+                if (message_hash != hash_signed) or (message_hash != message["hash"]):
+                    raise EnvironmentError("Message hash that you received does not match. Possible tampering.")
 
-            print(message_decrypted)
+                print(message_decrypted)
+            except EnvironmentError as err:
+                print(f"|OWN SECURITY|: {err}")
+                print("|OWN SECURITY|: Message hidden because of this error...")
+            except Exception as err:
+                print(f"Error while reading from server: {err}")
+                print("Closing connection...")
+                self.s.close()
+                break
 
     def send_message(self, message: str):
         """ Sends a message to the server. It is encrypted with the server_public_key. """
         message_dictionary = {
-            "hash": None,  # TODO: hash the message
+            "hash": sha256(message.encode()).hexdigest(),
+            "hash_signed": self.client_crypto.sign_message(sha256(message.encode()).hexdigest()),
             "message_encrypted": self.client_crypto.encrypt(message, **self.server_public_key)
         }
 
