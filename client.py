@@ -8,10 +8,11 @@ import threading
 class Client:
     """ Client class for the client side of the chat application. """
 
-    def __init__(self, server_ip: str, port: int, username: str) -> None:
+    def __init__(self, server_ip: str = "127.0.0.1", port: int = 9001,
+                 username: str = None) -> None:
         self.server_ip = server_ip
         self.port = port
-        self.username = username
+        self.username = username or input("Please enter your username: ")
         self.s = None
 
     def init_connection(self):
@@ -50,7 +51,7 @@ class Client:
     def write_handler(self):
         """ Reads messages from the console and sends them to the server. """
         while True:
-            message = input()
+            message = f"|MESSAGE| {self.username}: {input()}"
 
             # encrypt message with the secrete key
 
@@ -60,5 +61,5 @@ class Client:
 
 
 if __name__ == "__main__":
-    cl = Client("127.0.0.1", 9001, "b_g")
+    cl = Client("127.0.0.1", 9001)
     cl.init_connection()

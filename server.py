@@ -8,8 +8,8 @@ import threading
 class Server:
     """ Server class for the chat application. """
 
-    def __init__(self, port: int) -> None:
-        self.host = '127.0.0.1'
+    def __init__(self, host: str = "127.0.0.1", port: int = 9001) -> None:
+        self.host = host
         self.port = port
         self.clients = []
         self.username_lookup = {}
@@ -25,24 +25,28 @@ class Server:
         while True:
             c, addr = self.s.accept()
             username = c.recv(1024).decode()
-            print(f"{username} tries to connect")
-            self.broadcast(f'new person has joined: {username}')
-            self.username_lookup[c] = username
-            self.clients.append(c)
+            print(f"|SERVER| {username} tries to connect")
 
-            # send public key to the client
+            try:
+                self.broadcast(f'|SERVER| New person has joined: {username}')
+                self.username_lookup[c] = username
+                self.clients.append(c)
 
-            # ...
+                # send public key to the client
 
-            # encrypt the secret with the clients public key
+                # ...
 
-            # ...
+                # encrypt the secret with the clients public key
 
-            # send the encrypted secret to a client
+                # ...
 
-            # ...
+                # send the encrypted secret to a client
 
-            threading.Thread(target=self.handle_client, args=(c, addr,)).start()
+                # ...
+
+                threading.Thread(target=self.handle_client, args=(c, addr,)).start()
+            except Exception as err:
+                print(f"|SERVER| {username} has encountered an error {err}")
 
     def broadcast(self, msg: str):
         """ Broadcast a message to all clients. """
@@ -53,16 +57,33 @@ class Server:
 
             client.send(msg.encode())
 
+    def disconnect(self, c: socket, err: Exception = None):
+        """ Disconnect a client. """
+        username = self.username_lookup.get(c, 'Unknown')
+        c.close()
+
+        if c in self.clients:
+            self.clients.remove(c)
+        if username in self.username_lookup:
+            del self.username_lookup[username]
+
+        self.broadcast(f'|SERVER| {username} has left the chat')
+        print(f"|SERVER| {username} has disconnected ({err})")
+
     def handle_client(self, c: socket, addr):
         """ Handle a client. """
-        while True:
-            msg = c.recv(1024)
 
-            for client in self.clients:
-                if client != c:
-                    client.send(msg)
+        try:
+            while True:
+                msg = c.recv(1024)
+
+                for client in self.clients:
+                    if client != c:
+                        client.send(msg)
+        except Exception as err:
+            self.disconnect(c, err)
 
 
 if __name__ == "__main__":
-    s = Server(9001)
+    s = Server("127.0.0.1", 9001)
     s.start()
