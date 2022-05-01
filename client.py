@@ -27,14 +27,17 @@ class Client:
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.s.connect((self.server_ip, self.port))
-        except Exception as err:
-            print(f"[client]: could not connect to server: {err}")
-            return
 
-        self.client_crypto = ChatCryptography()  # create own key pair
-        self.server_public_key = json.loads(self.s.recv(self.bufsize).decode())
-        self.send_message(json.dumps(self.client_crypto.public_key))
-        self.send_message(self.username)
+            self.client_crypto = ChatCryptography()  # create own key pair
+            self.server_public_key = json.loads(self.s.recv(self.bufsize).decode())
+            self.send_message(json.dumps(self.client_crypto.public_key))
+            self.send_message(self.username)
+        except json.JSONDecodeError:
+            print(f"|CLIENT ERROR| Buffer size is too small, increase it to receive messages correctly")
+            return
+        except Exception as err:
+            print(f"|CLIENT ERROR| Could not connect to server: {err}")
+            return
 
         message_handler = threading.Thread(target=self.read_handler, args=())
         message_handler.start()
@@ -60,10 +63,15 @@ class Client:
 
                 print(message_decrypted)
             except NetworkSecurityError as err:
-                print(f"|OWN SECURITY|: {err}")
-                print("|OWN SECURITY|: Message hidden because of this error...")
+                print(f"|CLIENT SECURITY|: {err}")
+                print("|CLIENT SECURITY|: Message hidden because of this error...")
+            except (json.JSONDecodeError, TypeError):
+                print("|CLIENT ERROR| Buffer size is too small, increase it to receive messages correctly")
+                print("Closing connection...")
+                self.s.close()
+                break
             except Exception as err:
-                print(f"Error while reading from server: {err}")
+                print(f"|CLIENT ERROR| Error while reading from server: {err}")
                 print("Closing connection...")
                 self.s.close()
                 break
@@ -88,5 +96,5 @@ class Client:
 
 
 if __name__ == "__main__":
-    cl = Client("127.0.0.1", 9001)
+    cl = Client(server_ip="127.0.0.1", port=9001, bufsize=10240)
     cl.init_connection()

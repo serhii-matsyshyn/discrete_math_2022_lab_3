@@ -55,6 +55,8 @@ class Server:
                 self.broadcast(f'|SERVER| New person has joined: {username}', from_client=c)
 
                 threading.Thread(target=self.handle_client, args=(c, addr,)).start()
+            except json.JSONDecodeError:
+                print("|SERVER| Error: buffer size is too small, increase it to receive messages correctly")
             except Exception as err:
                 print(f"|SERVER| {username} has encountered an error {err}")
 
@@ -132,10 +134,12 @@ class Server:
                 "|SERVER SECURITY| Your message hash that server has received does not match. \
 Possible tampering. The message was not sent to other clients.", c)
             # self.disconnect(c, err)
+        except json.JSONDecodeError:
+            print("|SERVER| Buffer size is too small, increase it to receive messages correctly")
         except Exception as err:
             self.disconnect(c, err)
 
 
 if __name__ == "__main__":
-    s = Server("127.0.0.1", 9001)
+    s = Server(host="127.0.0.1", port=9001, bufsize=10240)
     s.start()
