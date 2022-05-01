@@ -4,9 +4,9 @@
 import socket
 import threading
 import json
-from hashlib import sha256
+from hashlib import shake_256
 
-from chat_cryptography import ChatCryptography
+from chat_cryptography import ChatCryptography, NetworkSecurityError
 
 
 class Server:
@@ -81,8 +81,10 @@ class Server:
         """ Send a message to a client. """
         # encrypt the message with the clients public key
         message_encrypted = {
-            "hash": sha256(message.encode()).hexdigest(),
-            "hash_signed": self.server_crypto.sign_message(sha256(message.encode()).hexdigest()),
+            "hash": shake_256(message.encode()).hexdigest(5),
+            "hash_signed": self.server_crypto.sign_message(
+                shake_256(message.encode()).hexdigest(5)
+            ),
             "message_encrypted": self.server_crypto.encrypt(
                 message,
                 **self.clients_public_keys[client]
@@ -97,7 +99,7 @@ class Server:
         message = json.loads(message)
 
         message_decrypted = self.server_crypto.decrypt(message["message_encrypted"])
-        message_hash = sha256(message_decrypted.encode()).hexdigest()
+        message_hash = shake_256(message_decrypted.encode()).hexdigest(5)
 
         if self.clients_public_keys.get(c):
             # verify the message hash by checking the signature
@@ -109,9 +111,12 @@ class Server:
             hash_signed = message_hash
 
         if (message_hash != hash_signed) or (message_hash != message["hash"]):
-            # if the hash is not the same as the hash signed, or the hash is not the same as the hash sent,
+            # if the hash is not the same as the hash signed,
+            # or the hash is not the same as the hash sent,
             # the message is not valid
-            raise EnvironmentError("Message hash (or hash signed) does not match. Possible tampering.")
+            raise NetworkSecurityError(
+                "Message hash (or hash signed) does not match. Possible tampering."
+            )
 
         return message_decrypted
 
@@ -121,9 +126,10 @@ class Server:
             while True:
                 message = self.receive_message(c)
                 self.broadcast(message, from_client=c)
-        except EnvironmentError as err:
+        except NetworkSecurityError as err:
             print(f"|SERVER| {self.username_lookup.get(c)} - {err}")
-            self.send_message("|SERVER SECURITY| Your message hash that server has received does not match. \
+            self.send_message(
+                "|SERVER SECURITY| Your message hash that server has received does not match. \
 Possible tampering. The message was not sent to other clients.", c)
             # self.disconnect(c, err)
         except Exception as err:

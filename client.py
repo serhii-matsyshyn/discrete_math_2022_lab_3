@@ -3,9 +3,9 @@
 import json
 import socket
 import threading
-from hashlib import sha256
+from hashlib import shake_256
 
-from chat_cryptography import ChatCryptography
+from chat_cryptography import ChatCryptography, NetworkSecurityError
 
 
 class Client:
@@ -52,12 +52,14 @@ class Client:
                 hash_signed = self.client_crypto.verify_message_signature(message["hash_signed"],
                                                                           **self.server_public_key)
 
-                message_hash = sha256(message_decrypted.encode()).hexdigest()
+                message_hash = shake_256(message_decrypted.encode()).hexdigest(5)
                 if (message_hash != hash_signed) or (message_hash != message["hash"]):
-                    raise EnvironmentError("Message hash that you received does not match. Possible tampering.")
+                    raise NetworkSecurityError(
+                        "Message hash that you received does not match. Possible tampering."
+                    )
 
                 print(message_decrypted)
-            except EnvironmentError as err:
+            except NetworkSecurityError as err:
                 print(f"|OWN SECURITY|: {err}")
                 print("|OWN SECURITY|: Message hidden because of this error...")
             except Exception as err:
@@ -69,8 +71,10 @@ class Client:
     def send_message(self, message: str):
         """ Sends a message to the server. It is encrypted with the server_public_key. """
         message_dictionary = {
-            "hash": sha256(message.encode()).hexdigest(),
-            "hash_signed": self.client_crypto.sign_message(sha256(message.encode()).hexdigest()),
+            "hash": shake_256(message.encode()).hexdigest(5),
+            "hash_signed": self.client_crypto.sign_message(
+                shake_256(message.encode()).hexdigest(5)
+            ),
             "message_encrypted": self.client_crypto.encrypt(message, **self.server_public_key)
         }
 

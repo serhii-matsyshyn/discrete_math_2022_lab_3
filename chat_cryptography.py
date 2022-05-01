@@ -6,7 +6,7 @@ import random
 class ChatCryptography:
     """ Class for cryptography of chat. """
 
-    def __init__(self, bits: int = 10):
+    def __init__(self, bits: int = 512):
         self.short_primes = self.generate_all_prime_numbers_up_to_x()
         self.__keys = self.generate_rsa_keys(bits)
 
@@ -129,6 +129,10 @@ class ChatCryptography:
     def public_key(self):
         """ Returns public key """
         return {"n": self.__keys["n"], "e": self.__keys["e"]}
+
+
+class NetworkSecurityError(Exception):
+    """ Security error """
 
 
 if __name__ == '__main__':
